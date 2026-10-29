@@ -4,16 +4,29 @@ file_path <- "MT2013/data/raw/add.csv"
 if (!file.exists(file_path)) {
   stop("File not found at: ", file_path)
 }
-df <- read.csv(file_path, na.strings = c("?", "NA", "", " ?"), stringsAsFactors = FALSE)
+df <- read.csv(
+  file_path, 
+  na.strings = c("?", "NA", "", " ?"),
+  strip.white = TRUE,
+  stringsAsFactors = FALSE)
 n_rows <- nrow(df)
 n_cols <- ncol(df)
 n_features <- n_cols - 2 # Trừ 1 cột index và 1 cột label
+
+# Dừng nếu số dòng hoặc số cột khác với dữ liệu dự kiến (3279 × 1560).
+if (n_rows != 3279 || n_cols != 1560) {
+  stop(
+    "Unexpected dimensions: ",
+    n_rows, " rows, ", n_cols, " columns. ",
+    "Expected: 3279 rows, 1560 columns."
+  )
+}
 
 cat("Number of observations:", n_rows, "\n")
 cat("Number of columns:", n_cols, "\n")
 cat("Number of features:", n_features, "\n\n")
 
-cat("First 5 lines and :\n")
+cat("First 5 rows (first 10 columns):\n")
 print(head(df[, 1:min(10, n_cols)], 5))
 cat("\nDatatype distribution:\n")
 print(table(sapply(df, class)))
@@ -35,8 +48,8 @@ for (col in binary_cols) {
   }
 }
 if (length(anomalous_cols) == 0) {
-  cat("No anomoly found, there is only 1, 0 and NA.\n")
+  cat("No anomolies found. Only 1, 0 and NA.\n")
 } else {
-  cat("Anomoly found in column(s)\n")
+  cat("Anomolies found in column(s)\n")
   print(anomalous_cols)
 }
