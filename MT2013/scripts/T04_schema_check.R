@@ -1,14 +1,6 @@
+source("MT2013/scripts/load_data.R")
+df <- load_data()
 
-file_path <- "MT2013/data/raw/add.csv"
-
-if (!file.exists(file_path)) {
-  stop("File not found at: ", file_path)
-}
-df <- read.csv(
-  file_path, 
-  na.strings = c("?", "NA", "", " ?"),
-  strip.white = TRUE,
-  stringsAsFactors = FALSE)
 n_rows <- nrow(df)
 n_cols <- ncol(df)
 n_features <- n_cols - 2 # Trừ 1 cột index và 1 cột label
