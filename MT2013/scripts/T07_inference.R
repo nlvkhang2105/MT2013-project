@@ -12,24 +12,33 @@ source("MT2013/scripts/T05_preprocessing.R")
 # All tests are two-sided.
 
 
-# TODO 1: Perform Welch's two-sample t-test for Width.
-# Report mean difference (Ad - Non-ad), t, df, p, and 95% CI.
+# ------------------------------------------------------------
+# TODO 1: Compare mean Width between Ad and Non-ad.
+# ------------------------------------------------------------
+
+# Perform Welch's two-sample t-test (RQ1).
+# Report mean difference (Ad - Non-ad), t-statistic,
+# df, p-value, and 95% CI for the mean difference.
 
 
-# TODO 2: Test F1 and F2 proportions by Class.
-# Build 2x2 tables; select prop.test() or fisher.test()
-# based on expected counts and test assumptions.
+# ------------------------------------------------------------
+# TODO 2: Compare F1 and F2 proportions by Class.
+# ------------------------------------------------------------
+
+# Build 2x2 tables and check expected counts.
+# Perform two-proportion tests using prop.test(correct = FALSE).
+# Report proportion differences (Ad - Non-ad), p-values,
+# and 95% CIs for the proportion differences (RQ2).
 
 
-# TODO 3: Apply Holm correction to the RQ2 p-values.
-# Report raw and adjusted p-values; keep RQ1 separate.
+# ------------------------------------------------------------
+# TODO 3: Adjust p-values and summarize conclusions.
+# ------------------------------------------------------------
+
+# Apply Holm correction to the two RQ2 p-values.
+# Report raw and adjusted p-values.
+# State conclusions at alpha = 0.05.
 
 
-# TODO 4: Validate and interpret inference results.
-# Cross-check sample sizes with T06.
-# Discuss missing-data and duplicate limitations.
-# Perform sensitivity analysis only if necessary.
-
-
-# Outputs: Welch test, RQ2 contingency tests,
-#          Holm-adjusted p-values and conclusions
+# Outputs: RQ1 Welch test, RQ2 proportion tests,
+#          Holm-adjusted p-values, and conclusions.

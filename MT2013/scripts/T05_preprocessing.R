@@ -83,7 +83,7 @@ n_valid <- n_total - n_missing
 missing_rate <- round(n_missing / n_total, 4)
 
 missing_by_class <- data.frame(
-  Class = classes,
+  Class = valid_classes,
   n_total = n_total,
   n_missing = n_missing,
   missing_rate = missing_rate,
