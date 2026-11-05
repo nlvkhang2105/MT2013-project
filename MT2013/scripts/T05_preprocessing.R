@@ -117,6 +117,12 @@ rq2_data <- list(
     c("Class", "F2")
   ]
 )
+# Complete-case dataset for RQ2 logistic regression
+rq2_model_data <- analysis_df[
+  complete.cases(analysis_df[, c("Width", "Class", "F1", "F2")]),
+  c("Width", "Class", "F1", "F2")
+]
+
 
 # ------------------------------------------------------------
 # Summary
@@ -137,5 +143,6 @@ cat("analysis_df :", nrow(analysis_df), "rows\n")
 cat("rq1_data   :", nrow(rq1_data), "rows\n")
 cat("rq2_data$F1:", nrow(rq2_data$F1), "rows\n")
 cat("rq2_data$F2:", nrow(rq2_data$F2), "rows\n")
+cat("rq2_model_data:", nrow(rq2_model_data), "rows\n")
 
 cat("\nT05 completed successfully.\n")

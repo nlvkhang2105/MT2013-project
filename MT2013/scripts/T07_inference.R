@@ -7,10 +7,13 @@
 
 source("MT2013/scripts/T05_preprocessing.R")
 
-# Inputs: rq1_data, rq2_data
-# Significance level: alpha = 0.05
-# All tests are two-sided.
+# Significance level
+alpha <- 0.05
 
+# Inputs: rq1_data, rq2_model_data
+# Significance level: alpha = 0.05
+# RQ1: Two-sided Welch's t-test
+# RQ2: Joint likelihood-ratio test
 
 # ------------------------------------------------------------
 # TODO 1: Compare mean Width between Ad and Non-ad.
@@ -64,23 +67,91 @@ if (p_val_rq1 < 0.05) {
 
 
 # ------------------------------------------------------------
-# TODO 2: Compare F1 and F2 proportions by Class.
+# TODO 2: Joint logistic regression LRT (RQ2)
+# H0: beta_F1 = beta_F2 = 0 after accounting for Width
+# M0: W + W^2; M1: W + W^2 + F1 + F2
 # ------------------------------------------------------------
 
-# Build 2x2 tables and check expected counts.
-# Perform two-proportion tests using prop.test(correct = FALSE).
-# Report proportion differences (Ad - Non-ad), p-values,
-# and 95% CIs for the proportion differences (RQ2).
+# Use one complete-case dataset for both nested models.
+# Retain the old rq2_data list in T05 for T06 descriptive summaries.
 
+if (nrow(rq2_model_data) == 0L ||
+    any(!is.finite(rq2_model_data$Width)) ||
+    any(rq2_model_data$Width <= 0)) {
+  stop("RQ2 requires valid, positive, finite Width observations.")
+}
+
+rq2_model_data$W <- log2(rq2_model_data$Width)
+rq2_model_data$Y <- as.integer(rq2_model_data$Class == "ad.")
+
+# Verify the current dataset's expected complete-case sample.
+stopifnot(nrow(rq2_model_data) == 2378L)
+
+m0 <- glm(Y ~ W + I(W^2), data = rq2_model_data,
+          family = binomial(link = "logit"))
+m1 <- glm(Y ~ W + I(W^2) + F1 + F2, data = rq2_model_data,
+          family = binomial(link = "logit"))
+
+# A valid LRT requires the same rows and identifiable, converged fits.
+stopifnot(
+  nobs(m0) == nrow(rq2_model_data),
+  nobs(m1) == nrow(rq2_model_data),
+  isTRUE(m0$converged), isTRUE(m1$converged),
+  m0$rank == ncol(model.matrix(m0)),
+  m1$rank == ncol(model.matrix(m1))
+)
+
+ll0 <- as.numeric(logLik(m0))
+ll1 <- as.numeric(logLik(m1))
+G2  <- 2 * (ll1 - ll0)
+df_lrt <- attr(logLik(m1), "df") - attr(logLik(m0), "df")
+p_val_rq2 <- pchisq(G2, df = df_lrt, lower.tail = FALSE)
+stopifnot(df_lrt == 2L, G2 >= -1e-8)
+
+cat("========================================================\n")
+cat("         RQ2: JOINT LIKELIHOOD-RATIO TEST              \n")
+cat("========================================================\n")
+cat(sprintf("Complete cases     : %d\n", nrow(rq2_model_data)))
+cat(sprintf("Ad / Non-ad        : %d / %d\n",
+            sum(rq2_model_data$Y == 1L), sum(rq2_model_data$Y == 0L)))
+cat(sprintf("M0 log-likelihood  : %.4f\n", ll0))
+cat(sprintf("M1 log-likelihood  : %.4f\n", ll1))
+cat(sprintf("LRT G^2            : %.4f\n", G2))
+cat(sprintf("Degrees of freedom : %d\n", df_lrt))
+cat(sprintf("p-value            : %.4e\n", p_val_rq2))
+cat("========================================================\n")
+
+if (p_val_rq2 <= alpha) {
+  cat("RQ2 conclusion: Reject H0. At least one of F1 and F2 provides\n")
+  cat("additional association with the Ad label after adjusting for Width,\n")
+  cat("subject to the model and LRT assumptions.\n\n")
+} else {
+  cat("RQ2 conclusion: Fail to reject H0. Insufficient evidence of a\n")
+  cat("joint contribution from F1 and F2 after adjusting for Width.\n\n")
+}
 
 # ------------------------------------------------------------
-# TODO 3: Adjust p-values and summarize conclusions.
+# TODO 3: Essential diagnostics and interpretation limits
 # ------------------------------------------------------------
 
-# Apply Holm correction to the two RQ2 p-values.
-# Report raw and adjusted p-values.
-# State conclusions at alpha = 0.05.
+pattern_counts <- as.data.frame(table(
+  F1 = rq2_model_data$F1,
+  F2 = rq2_model_data$F2,
+  Class = rq2_model_data$Class
+))
 
+cat("RQ2 diagnostic: F1 x F2 x Class cell counts\n")
+print(pattern_counts, row.names = FALSE)
+cat(sprintf("Converged models   : M0 = %s, M1 = %s\n",
+            m0$converged, m1$converged))
+if (any(pattern_counts$Freq < 5L)) {
+  cat("Caution: Some feature/class combinations are sparse;\n")
+  cat("interpret large-sample logistic inference carefully.\n")
+}
+cat("Limitations: Missing Width, retained duplicate records, and\n")
+cat("data-informed model specification may affect population inference.\n")
+cat("The joint LRT does not show that both features contribute individually,\n")
+cat("nor does it establish causality or out-of-sample prediction quality.\n")
 
-# Outputs: RQ1 Welch test, RQ2 proportion tests,
-#          Holm-adjusted p-values, and conclusions.
+# Outputs: welch_result, mean_diff, ci_lower, ci_upper,
+#          rq2_model_data, m0, m1, G2, df_lrt, p_val_rq2.
