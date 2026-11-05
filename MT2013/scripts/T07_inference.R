@@ -21,6 +21,51 @@ source("MT2013/scripts/T05_preprocessing.R")
 # df, p-value, and 95% CI for the mean difference.
 
 
+# ensure factor levels are ordered as "ad." then "nonad." for correct mean difference calculation (Ad - Non-ad)
+rq1_data$Class <- factor(rq1_data$Class, levels = c("ad.", "nonad."))
+
+# Welch's t-test (var.equal = FALSE)
+welch_result <- t.test(
+  Width ~ Class,
+  data = rq1_data,
+  var.equal = FALSE,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+
+# 3. Trích xuất các đại lượng cần thiết từ đối tượng welch_result
+mean_ad     <- welch_result$estimate[1]
+mean_nonad  <- welch_result$estimate[2]
+mean_diff   <- mean_ad - mean_nonad
+t_stat      <- welch_result$statistic
+df_val      <- welch_result$parameter
+p_val_rq1   <- welch_result$p.value
+ci_lower    <- welch_result$conf.int[1]
+ci_upper    <- welch_result$conf.int[2]
+
+# 4. Hiển thị bảng kết quả Table 1 (RQ1 Welch Test) theo chuẩn Tiếng Anh
+cat("\n========================================================\n")
+cat("            TABLE 1: RQ1 WELCH'S T-TEST RESULTS         \n")
+cat("========================================================\n")
+cat(sprintf("Mean (Ad)         : %.4f\n", mean_ad))
+cat(sprintf("Mean (Non-ad)     : %.4f\n", mean_nonad))
+cat(sprintf("Mean Difference   : %.4f\n", mean_diff))
+cat(sprintf("t-statistic       : %.4f\n", t_stat))
+cat(sprintf("Degrees of Freedom: %.4f\n", df_val))
+cat(sprintf("p-value           : %.4e\n", p_val_rq1))
+cat(sprintf("95%% CI            : [%.4f, %.4f]\n", ci_lower, ci_upper))
+cat("========================================================\n\n")
+
+# 5. Kết luận thống kê cho RQ1
+if (p_val_rq1 < 0.05) {
+  cat("RQ1 Conclusion: Reject H0. There is a statistically significant difference\n")
+  cat("in average Width between advertisement and non-advertisement images (p < 0.05).\n")
+} else {
+  cat("RQ1 Conclusion: Fail to reject H0. There is no statistically significant difference\n")
+  cat("in average Width between advertisement and non-advertisement images (p >= 0.05).\n")
+}
+
+
 # ------------------------------------------------------------
 # TODO 2: Compare F1 and F2 proportions by Class.
 # ------------------------------------------------------------
