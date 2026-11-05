@@ -33,7 +33,6 @@ welch_result <- t.test(
   conf.level = 0.95
 )
 
-# 3. Trích xuất các đại lượng cần thiết từ đối tượng welch_result
 mean_ad     <- welch_result$estimate[1]
 mean_nonad  <- welch_result$estimate[2]
 mean_diff   <- mean_ad - mean_nonad
@@ -43,7 +42,6 @@ p_val_rq1   <- welch_result$p.value
 ci_lower    <- welch_result$conf.int[1]
 ci_upper    <- welch_result$conf.int[2]
 
-# 4. Hiển thị bảng kết quả Table 1 (RQ1 Welch Test) theo chuẩn Tiếng Anh
 cat("\n========================================================\n")
 cat("            TABLE 1: RQ1 WELCH'S T-TEST RESULTS         \n")
 cat("========================================================\n")
@@ -56,7 +54,6 @@ cat(sprintf("p-value           : %.4e\n", p_val_rq1))
 cat(sprintf("95%% CI            : [%.4f, %.4f]\n", ci_lower, ci_upper))
 cat("========================================================\n\n")
 
-# 5. Kết luận thống kê cho RQ1
 if (p_val_rq1 < 0.05) {
   cat("RQ1 Conclusion: Reject H0. There is a statistically significant difference\n")
   cat("in average Width between advertisement and non-advertisement images (p < 0.05).\n")
