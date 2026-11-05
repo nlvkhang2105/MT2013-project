@@ -131,27 +131,19 @@ if (p_val_rq2 <= alpha) {
 }
 
 # ------------------------------------------------------------
-# TODO 3: Essential diagnostics and interpretation limits
+# TODO 3: Check sparse feature combinations
 # ------------------------------------------------------------
 
-pattern_counts <- as.data.frame(table(
-  F1 = rq2_model_data$F1,
-  F2 = rq2_model_data$F2,
-  Class = rq2_model_data$Class
-))
+pattern_counts <- table(
+  rq2_model_data$F1,
+  rq2_model_data$F2,
+  rq2_model_data$Class
+)
 
-cat("RQ2 diagnostic: F1 x F2 x Class cell counts\n")
-print(pattern_counts, row.names = FALSE)
-cat(sprintf("Converged models   : M0 = %s, M1 = %s\n",
-            m0$converged, m1$converged))
-if (any(pattern_counts$Freq < 5L)) {
-  cat("Caution: Some feature/class combinations are sparse;\n")
-  cat("interpret large-sample logistic inference carefully.\n")
+if (any(pattern_counts < 5)) {
+  warning("Sparse feature/class combinations; interpret LRT cautiously.")
 }
-cat("Limitations: Missing Width, retained duplicate records, and\n")
-cat("data-informed model specification may affect population inference.\n")
-cat("The joint LRT does not show that both features contribute individually,\n")
-cat("nor does it establish causality or out-of-sample prediction quality.\n")
+
 
 # Outputs: welch_result, mean_diff, ci_lower, ci_upper,
 #          rq2_model_data, m0, m1, G2, df_lrt, p_val_rq2.
