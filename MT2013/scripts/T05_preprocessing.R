@@ -1,148 +1,61 @@
-# ============================================================
-# T05 - Data Preprocessing
-# Owner: Tue
-# Goal: Prepare data for descriptive and inferential analysis
-# ============================================================
-
+# 1. Load data and select columns
 source("MT2013/scripts/load_data.R")
 df <- load_data()
 
-# Selected variables:
-# Width : X1    - Image width
-# Class : X1558 - Ad / Non-ad
-# F1    : X351  - url*ads
-# F2    : X1455 - alt*click+here
+feature_cols <- paste0("X", 4:1557)
+analysis_df <- df[, paste0("X", 0:1558)] # Exclude the index column
+names(analysis_df)[1:4] <- c("Height", "Width", "Aratio", "Local")
+names(analysis_df)[1559] <- "Class"
 
-# ------------------------------------------------------------
-# STEP 1: Select and validate the analysis variables.
-# ------------------------------------------------------------
-
-analysis_df <- data.frame(
-  Width = df$X1,
-  Class = df$X1558,
-  F1    = df$X351,
-  F2    = df$X1455,
-  stringsAsFactors = FALSE
-)
-
-# Width: Numeric and positive (NA allowed)
-if (!is.numeric(analysis_df$Width)) {
-  stop("Width must be numeric.")
-}
-if (any(analysis_df$Width[!is.na(analysis_df$Width)] <= 0)) {
-  stop("Width must be positive.")
+# 2. Check analysis requirements
+for (col in c("Height", "Width", "Aratio", "Local", feature_cols)) {
+  x <- analysis_df[[col]]
+  if (!all(is.na(x)) && !is.numeric(x)) {
+    stop("Expected numeric data in column: ", col)
+  }
+  if (any(!is.na(x) & !is.finite(x))) {
+    stop("Non-finite value in column: ", col)
+  }
 }
 
-# Class: Only 'ad.' and 'nonad.' (NA allowed)
 valid_classes <- c("ad.", "nonad.")
-invalid_classes <- setdiff(
-  unique(analysis_df$Class[!is.na(analysis_df$Class)]), 
-  valid_classes
-)
-
-if (length(invalid_classes) > 0) {
-  stop("Invalid Class labels: ", paste(invalid_classes, collapse = ", "))
+if (any(!is.na(analysis_df$Class) &
+        !(analysis_df$Class %in% valid_classes))) {
+  stop("Class must contain ad., nonad., or NA.")
+}
+if (!all(valid_classes %in% analysis_df$Class)) {
+  stop("Both ad. and nonad. classes are required.")
 }
 
-# F1 and F2: Numeric with values 0, 1, or NA
-if (!is.numeric(analysis_df$F1) || !is.numeric(analysis_df$F2)) {
-  stop("F1 and F2 must be numeric.")
+for (col in c("Height", "Width", "Aratio")) {
+  if (any(analysis_df[[col]] <= 0, na.rm = TRUE)) {
+    stop("Inspect non-positive values in column: ", col)
+  }
 }
 
-valid_binary <- c(0, 1)
-invalid_f1 <- setdiff(unique(analysis_df$F1[!is.na(analysis_df$F1)]), valid_binary)
-if (length(invalid_f1) > 0) {
-  stop("Invalid F1 values: ", paste(invalid_f1, collapse = ", "))
+for (col in c("Local", feature_cols)) {
+  x <- analysis_df[[col]]
+  if (any(!is.na(x) & !(x %in% c(0, 1)))) {
+    stop("Column must contain only 0, 1, or NA: ", col)
+  }
 }
 
-invalid_f2 <- setdiff(unique(analysis_df$F2[!is.na(analysis_df$F2)]), valid_binary)
-if (length(invalid_f2) > 0) {
-  stop("Invalid F2 values: ", paste(invalid_f2, collapse = ", "))
-}
-
-# ------------------------------------------------------------
-# STEP 2: Assess missing values and duplicate records.
-# ------------------------------------------------------------
-
-# Count missing values in each selected variable
+# 3. Summarize missingness and duplicate rows; retain duplicates
 missing_counts <- colSums(is.na(analysis_df))
-
-# Summarize Width missingness by Class
-n_total <- as.vector(
-  table(factor(analysis_df$Class, levels = valid_classes))
-  )
-  
-n_missing <- as.vector(
-  table(factor(
-    analysis_df$Class[is.na(analysis_df$Width)],
-    levels = valid_classes
-  ))
+missing_summary <- data.frame(
+  variable = names(analysis_df),
+  n_missing = as.vector(missing_counts),
+  missing_percent = round(100 * as.vector(missing_counts) / nrow(analysis_df), 2)
 )
-
-n_valid <- n_total - n_missing
-missing_rate <- round(n_missing / n_total, 4)
-
-missing_by_class <- data.frame(
-  Class = valid_classes,
-  n_total = n_total,
-  n_missing = n_missing,
-  missing_rate = missing_rate,
-  n_valid = n_valid,
-  stringsAsFactors = FALSE
-)
-
-# Detect duplicates excluding the first (index) column
-# Keep all duplicate records
-duplicate_rows <- duplicated(df[, -1])
+duplicate_rows <- duplicated(analysis_df)
 n_duplicates <- sum(duplicate_rows)
 
-# ------------------------------------------------------------
-# STEP 3: Prepare and validate analysis datasets.
-# ------------------------------------------------------------
-
-# RQ1 :  Width and Class observations
-rq1_data <- analysis_df[
-  !is.na(analysis_df$Width) & !is.na(analysis_df$Class), 
-  c("Width", "Class")
-]
-
-# RQ2: Separate complete datasets for F1 and F2
-rq2_data <- list(
-  F1 = analysis_df[
-    !is.na(analysis_df$Class) & !is.na(analysis_df$F1), 
-    c("Class", "F1")
-  ],
-  F2 = analysis_df[
-    !is.na(analysis_df$Class) & !is.na(analysis_df$F2), 
-    c("Class", "F2")
-  ]
-)
-# Complete-case dataset for RQ2 logistic regression
-rq2_model_data <- analysis_df[
-  complete.cases(analysis_df[, c("Width", "Class", "F1", "F2")]),
-  c("Width", "Class", "F1", "F2")
-]
-
-
-# ------------------------------------------------------------
-# Summary
-# ------------------------------------------------------------
-
-cat("=== T05: DATA PREPROCESSING ===\n\n")
-
-cat("Missing values by variable:\n")
-print(missing_counts)
-
-cat("\nWidth missingness by Class:\n")
-print(missing_by_class, row.names = FALSE)
-
-cat("\nDuplicate records (excluding index):", n_duplicates, "\n")
-
-cat("\nAnalysis dataset sizes:\n")
-cat("analysis_df :", nrow(analysis_df), "rows\n")
-cat("rq1_data   :", nrow(rq1_data), "rows\n")
-cat("rq2_data$F1:", nrow(rq2_data$F1), "rows\n")
-cat("rq2_data$F2:", nrow(rq2_data$F2), "rows\n")
-cat("rq2_model_data:", nrow(rq2_model_data), "rows\n")
-
-cat("\nT05 completed successfully.\n")
+# 4. Report preprocessing results
+cat("=== T05: DATA PREPROCESSING ===\n")
+cat("Input rows:", nrow(analysis_df), "\n")
+cat("Rows with missing Class:", sum(is.na(analysis_df$Class)), "\n")
+cat("Textual indicators:", length(feature_cols), "\n")
+cat("Missing textual values:", sum(missing_counts[feature_cols]), "\n")
+cat("Duplicate rows after the first occurrence (retained):", n_duplicates, "\n")
+cat("\nVariables with missing values:\n")
+print(missing_summary[missing_summary$n_missing > 0, ], row.names = FALSE)
