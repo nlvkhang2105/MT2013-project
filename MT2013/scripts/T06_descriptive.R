@@ -54,7 +54,7 @@ geometric_stats <- function(x) {
 table1_rows <- list()
 for (i in seq_along(class_levels)) {   # outer loop: Class (Ad first, then Non-ad)
         for (v in geometric_vars) {                # inner loop: Height, Width, Aratio
-                x <- labeled_df[[v]][labeled_df$Class == class_levels[i]]
+                x <- labels_df[[v]][labels_df$Class == class_levels[i]]
                 s <- geometric_stats(x)
                 table1_rows[[length(table1_rows) + 1]] <- data.frame(
                         Variable  = v,
@@ -183,15 +183,24 @@ print(head(valid_rate[order(-valid_rate$difference), ], 5), row.names = FALSE)
 cat("\nTop 5 features with higher rate in Non-ad:\n")
 print(head(valid_rate[order(valid_rate$difference), ], 5), row.names = FALSE)
 
-plot(
-  valid_rate$nonad_rate, valid_rate$ad_rate,
-  xlim = c(0, 1), ylim = c(0, 1),
-  pch = 16, cex = 0.6, col = rgb(0.12, 0.35, 0.65, 0.45),
-  xlab = "Non-ad occurrence rate",
-  ylab = "Ad occurrence rate",
-  main = "Figure 2. Textual Feature Occurrence Rates by Class"
-)
-abline(a = 0, b = 1, col = "red", lty = 2, lwd = 2)
-legend("topleft", legend = "y = x", col = "red", lty = 2, lwd = 2, bty = "n")
+library(plotly)
+
+p <- plot_ly(
+  data = valid_rate,
+  x = ~nonad_rate, y = ~ad_rate,
+  type = "scatter", mode = "markers",
+  text = ~feature,
+  marker = list(size = 4, opacity = 0.5)
+) |>
+  plotly::add_lines(x = c(0, 1), y = c(0, 1),
+                    line = list(color = "red", dash = "dash"),
+                    inherit = FALSE, showlegend = FALSE) |>
+  plotly::layout(
+    title = "Figure 2. Textual Feature Occurrence Rates by Class",
+    xaxis = list(title = "Non-ad occurrence rate"),
+    yaxis = list(title = "Ad occurrence rate")
+  )
+
+print(p)
 
 # Outputs: Class summary, 2 tables and 2 figures.
