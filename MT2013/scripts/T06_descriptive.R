@@ -116,66 +116,81 @@ cat("=== TODO_3 ===\n")
 feature_matrix <- as.matrix(analysis_df[, feature_cols])
 k_j <- colSums(feature_matrix == 1, na.rm = TRUE)
 
-support_levels <- c("Zero", "Very low", "Low", "Moderate", "Higher")
-support_ranges <- c("k = 0", "1-5", "6-20", "21-100", "> 100")
+level <- c("Zero", "Very low", "Low", "Moderate", "Higher")
+range <- c("0", "[1, 5]", "[6, 20]", "[21, 100]", "> 100")
 
 support_group <- cut(
   k_j,
   breaks = c(-Inf, 0, 5, 20, 100, Inf),
-  labels = support_levels,
-  right  = TRUE
+  labels = level,
+  right = TRUE
 )
+
 support_counts <- table(support_group)
 
 support_table <- data.frame(
-  Support = support_levels,
-  Range = support_ranges,
+  Support = level,
+  Range = range,
   n_features = as.vector(support_counts),
-  percent = round(100 * as.vector(support_counts) / length(feature_cols), 2)
+  Percentage = round(100 * as.vector(support_counts)/length(feature_cols), digits = 3)
 )
 
 print(support_table)
-png(file.path(figure_dir, "figure1_feature_support.png"),
-    width = 1800, height = 1200, res = 220)
-par(mar = c(5, 5, 4, 1))
-bar_mids <- barplot(
-  support_table$n_features,
-  names.arg = paste0(support_table$Support, "\n(", support_table$Range, ")"),
-  col = "steelblue",
-  border = NA,
-  ylim = c(0, max(support_table$n_features) * 1.15),
+
+png(
+  file.path(figure_dir, "Figure1_support_feature.png"),
+  width = 1800,
+  height = 1000,
+  units = "px",
+  res = 220
+)
+par(mar = c(5, 4, 4, 5))
+
+bar <- barplot(
+  height = support_table$n_features,
+  names.arg = paste0(support_table$Support, "\n", support_table$Range),
+  col = "#016783",
   xlab = "Support group (k_j = number of observations with feature = 1)",
   ylab = "Number of textual features",
-  main = "Figure 1. Textual Feature Support Distribution"
+  ylim = c(0, max(support_table$n_features) * 1.15)
 )
-text(bar_mids, support_table$n_features, labels = support_table$n_features,
-     pos = 3, cex = 0.9)
+text(
+  bar,
+  support_table$n_features,
+  labels = support_table$n_features,
+  pos = 3,
+  cex = 0.9
+)
+
 dev.off()
-cat("Saved: figure1_feature_support.png\n")
 
 
 # TODO 4: Calculate occurrence rates by Class and create the scatter plot.
 cat("=== TODO_4 ===\n")
-occurrence_rate <- function(class_value) {
-  m <- feature_matrix[which(analysis_df$Class == class_value), , drop = FALSE]
-  n_observed <- colSums(!is.na(m))
-  n_present  <- colSums(m == 1, na.rm = TRUE)
-  ifelse(n_observed == 0, NA_real_, n_present / n_observed)
+
+occurence_rate <- function(class_value) {
+        m <- feature_matrix[which(analysis_df$Class == class_value), , drop = FALSE]
+        n_observed <- colSums(!is.na(m))
+        n_present <- colSums(m == 1, na.rm = TRUE)
+        ifelse(n_observed == 0, yes = NA_real_, no = n_present/n_observed)
 }
 
 rate_df <- data.frame(
-  feature = feature_cols,
-  ad_rate = occurrence_rate("ad."),
-  nonad_rate = occurrence_rate("nonad."),
-  row.names = NULL
+        feature = feature_cols,
+        ad_rate = occurence_rate("ad."),
+        nonad_rate = occurence_rate("nonad."),
+        row.names = NULL
 )
+
 rate_df$difference <- rate_df$ad_rate - rate_df$nonad_rate
+
 
 cat("\nOccurrence rates computed for", nrow(rate_df), "features.\n")
 cat("Features with NA rate in at least one Class:",
     sum(is.na(rate_df$ad_rate) | is.na(rate_df$nonad_rate)), "\n")
 
 valid_rate <- rate_df[!is.na(rate_df$ad_rate) & !is.na(rate_df$nonad_rate), ]
+
 cat("\nPosition relative to y = x (features with both rates available):\n")
 cat("  Above the line (higher in Ad):    ", sum(valid_rate$difference > 0), "\n")
 cat("  Below the line (higher in Non-ad):", sum(valid_rate$difference < 0), "\n")
@@ -185,25 +200,50 @@ cat("  Both rates < 5%:                  ",
 cat("  |difference| >= 0.20:             ",
     sum(abs(valid_rate$difference) >= 0.20), "\n")
 
+
 cat("\nTop 5 features with higher rate in Ad:\n")
 print(head(valid_rate[order(-valid_rate$difference), ], 5), row.names = FALSE)
 cat("\nTop 5 features with higher rate in Non-ad:\n")
 print(head(valid_rate[order(valid_rate$difference), ], 5), row.names = FALSE)
 
-png(file.path(figure_dir, "figure2_occurrence_rates.png"),
-    width = 1800, height = 1800, res = 220)
-par(mar = c(5, 5, 4, 1))
-plot(
-  valid_rate$nonad_rate, valid_rate$ad_rate,
-  xlim = c(0, 1), ylim = c(0, 1),
-  pch = 16, cex = 0.6, col = rgb(0.12, 0.35, 0.65, 0.45),
-  xlab = "Non-ad occurrence rate",
-  ylab = "Ad occurrence rate",
-  main = "Figure 2. Textual Feature Occurrence Rates by Class"
+
+png(
+        file.path(figure_dir, "Figure2_occurence_rates.png"),
+        width = 2000,
+        height = 2000,
+        units = "px",
+        res = 220
 )
-abline(a = 0, b = 1, col = "red", lty = 2, lwd = 2)
-legend("topleft", legend = "y = x", col = "red", lty = 2, lwd = 2, bty = "n")
+par(mar = c(5, 4, 4, 5))
+
+plot(
+        valid_rate$nonad_rate,
+        valid_rate$ad_rate,
+        xlim = c(0, 1),
+        ylim = c(0, 1),
+        pch = 16,
+        cex = 0.6,
+        col = rgb(0.12, 0.35, 0.65, 0.45),
+        xlab = "Nonad occurence rate",
+        ylab = "Ad occurence rate"
+)
+
+abline(
+        a = 0,
+        b = 1,
+        col = "red",
+        lty = 2,
+        lwd = 2
+)
+legend(
+        "topleft",
+        legend = "y = x",
+        col = "red",
+        lty = 2,
+        lwd = 2,
+        bty = "n"
+)
+
 dev.off()
-cat("Saved: figure2_occurrence_rates.png\n")
 
 # Outputs: Class summary, 2 tables and 2 figures.
