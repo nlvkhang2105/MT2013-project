@@ -8,6 +8,9 @@ source("MT2013/scripts/T05_preprocessing.R")
 
 # Inputs: analysis_df, feature_cols
 
+figure_dir <- "MT2013/output/figures"
+dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
+
 # TODO 1: Summarize Class distribution and geometric variables.
 cat("=== TODO_1 ===\n")
 class_levels <- c("ad.", "nonad.")
@@ -132,7 +135,9 @@ support_table <- data.frame(
 )
 
 print(support_table)
-
+png(file.path(figure_dir, "figure1_feature_support.png"),
+    width = 1800, height = 1200, res = 220)
+par(mar = c(5, 5, 4, 1))
 bar_mids <- barplot(
   support_table$n_features,
   names.arg = paste0(support_table$Support, "\n(", support_table$Range, ")"),
@@ -143,9 +148,11 @@ bar_mids <- barplot(
   ylab = "Number of textual features",
   main = "Figure 1. Textual Feature Support Distribution"
 )
+text(bar_mids, support_table$n_features, labels = support_table$n_features,
+     pos = 3, cex = 0.9)
+dev.off()
+cat("Saved: figure1_feature_support.png\n")
 
-text(bar_mids, support_table$n_features,
-     labels = support_table$n_features, pos = 3, cex = 0.9)
 
 # TODO 4: Calculate occurrence rates by Class and create the scatter plot.
 cat("=== TODO_4 ===\n")
@@ -183,24 +190,20 @@ print(head(valid_rate[order(-valid_rate$difference), ], 5), row.names = FALSE)
 cat("\nTop 5 features with higher rate in Non-ad:\n")
 print(head(valid_rate[order(valid_rate$difference), ], 5), row.names = FALSE)
 
-library(plotly)
-
-p <- plot_ly(
-  data = valid_rate,
-  x = ~nonad_rate, y = ~ad_rate,
-  type = "scatter", mode = "markers",
-  text = ~feature,
-  marker = list(size = 4, opacity = 0.5)
-) |>
-  plotly::add_lines(x = c(0, 1), y = c(0, 1),
-                    line = list(color = "red", dash = "dash"),
-                    inherit = FALSE, showlegend = FALSE) |>
-  plotly::layout(
-    title = "Figure 2. Textual Feature Occurrence Rates by Class",
-    xaxis = list(title = "Non-ad occurrence rate"),
-    yaxis = list(title = "Ad occurrence rate")
-  )
-
-print(p)
+png(file.path(figure_dir, "figure2_occurrence_rates.png"),
+    width = 1800, height = 1800, res = 220)
+par(mar = c(5, 5, 4, 1))
+plot(
+  valid_rate$nonad_rate, valid_rate$ad_rate,
+  xlim = c(0, 1), ylim = c(0, 1),
+  pch = 16, cex = 0.6, col = rgb(0.12, 0.35, 0.65, 0.45),
+  xlab = "Non-ad occurrence rate",
+  ylab = "Ad occurrence rate",
+  main = "Figure 2. Textual Feature Occurrence Rates by Class"
+)
+abline(a = 0, b = 1, col = "red", lty = 2, lwd = 2)
+legend("topleft", legend = "y = x", col = "red", lty = 2, lwd = 2, bty = "n")
+dev.off()
+cat("Saved: figure2_occurrence_rates.png\n")
 
 # Outputs: Class summary, 2 tables and 2 figures.
