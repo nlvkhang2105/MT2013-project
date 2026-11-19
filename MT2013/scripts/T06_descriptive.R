@@ -4,246 +4,93 @@
 # Detailed instructions: T06 handoff document.
 # ============================================================
 
+# Load validated data from T05
 source("MT2013/scripts/T05_preprocessing.R")
-
-# Inputs: analysis_df, feature_cols
+y <- analysis_df$Class
 
 figure_dir <- "MT2013/output/figures"
 dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
 
-# TODO 1: Summarize Class distribution and geometric variables.
-cat("=== TODO_1 ===\n")
-class_levels <- c("ad.", "nonad.")
-class_labels <- c("Ad", "NonAd")
+# TODO 1 - Class counts and geometry summary (the only table for the PDF).
+class_n <- table(factor(y, levels = c("ad.", "nonad.")))
+print(data.frame(Class = c("Ad", "Non-ad"), N = as.integer(class_n),
+                 Percent = round(100 * as.integer(class_n) / length(y), 2)))
 
-labels_df <- analysis_df[!is.na(analysis_df$Class), ]
-
-fmt_n_pct <- function(n, total) {
-        sprintf("%d (%.2f%%)", n, 100 * n / total)
+table1 <- data.frame()
+for (g in c("ad.", "nonad.")) {
+  for (v in c("Height", "Width", "Aratio")) {
+    x <- analysis_df[[v]][y == g]
+    z <- x[!is.na(x)]
+    table1 <- rbind(table1, data.frame(
+      Variable = v, Class = if (g == "ad.") "Ad" else "Non-ad",
+      Valid_n = length(z), Missing_pct = round(100 * mean(is.na(x)), 2),
+      Mean = round(mean(z), 2), SD = round(sd(z), 2),
+      Median = round(median(z), 2), IQR = round(IQR(z), 2)
+    ))
+  }
 }
+print(table1, row.names = FALSE)
 
+# TODO 2 - Local: short completeness check, not a report table.
+cat("\nLocal by Class (0 / 1 / NA):\n")
+print(table(y, analysis_df$Local, useNA = "ifany"))
 
-#A
-n_total <- nrow(analysis_df)
-n_label <- nrow(labels_df)
+# TODO 3 - Support of each textual indicator: number of observed 1s.
+X <- as.matrix(analysis_df[, feature_cols, drop = FALSE])
+k_j <- colSums(X == 1)
+cat("\nFeature support summary:\n")
+print(summary(k_j))
+cat("SD:", round(sd(k_j), 2), "\n")
 
-class_counts <- table(factor(labels_df$Class, levels = class_levels))
+support_groups <- cut(k_j, breaks = c(-1, 0, 5, 20, 100, Inf),
+                      labels = c("0", "1-5", "6-20", "21-100", ">100"))
+support_counts <- table(support_groups)
+print(support_counts)
 
-class_summary <- data.frame(Class = class_labels,
-                            Instances = as.vector(class_counts),
-                            Percentage = round(100 * as.vector(class_counts) / n_label, digits = 3)
-                            )
-
-print(class_summary)
-
-#B
-geometric_vars <- c("Height", "Width", "Aratio")
-
-geometric_stats <- function(x) {
-        x <- x[!is.na(x)]
-        q <- quantile(x, prob = c(0.25, 0.75), names = FALSE)
-        c(
-                valid_n = length(x),
-                mean = mean(x),
-                sd = sd(x),
-                median = median(x),
-                Q1 = q[1],
-                Q3 = q[2],
-                min = min(x),
-                max = max(x)
-        )
-}
-
-table1_rows <- list()
-for (i in seq_along(class_levels)) {   # outer loop: Class (Ad first, then Non-ad)
-        for (v in geometric_vars) {                # inner loop: Height, Width, Aratio
-                x <- labels_df[[v]][labels_df$Class == class_levels[i]]
-                s <- geometric_stats(x)
-                table1_rows[[length(table1_rows) + 1]] <- data.frame(
-                        Variable  = v,
-                        Class     = class_labels[i],
-                        Valid_n   = as.integer(s["valid_n"]),
-                        Mean      = round(s["mean"], digits = 3),
-                        SD        = round(s["sd"], digits = 3),
-                        Median    = round(s["median"], digits = 3),
-                        Q1        = round(s["Q1"], digits = 3),
-                        Q3        = round(s["Q3"], digits = 3),
-                        Min       = round(s["min"], digits = 3),
-                        Max       = round(s["max"], digits = 3),
-                        row.names = NULL
-                )
-        }
-}
-
-table1 <- do.call(rbind, table1_rows)
-print(table1)
-
-# TODO 2: Summarize Local distribution by Class.
-cat("=== TODO_2 ===\n")
-cell <- function(x) {
-        n <- length(x)
-        c(
-        `Local = 0, n  (%)` = fmt_n_pct(sum(x == 0, na.rm = TRUE), total = n),
-        `Local = 1, n  (%)` = fmt_n_pct(sum(x == 1, na.rm = TRUE), total = n),
-        `Local = NA, n  (%)` = fmt_n_pct(sum(is.na(x)), total = n),
-        Total = as.character(n)
-        )
-}
-
-table2_rows <- lapply(seq_along(class_levels), function(i) {
-        x <- labels_df$Local[labels_df$Class == class_levels[i]]
-        data.frame(
-                Class = class_labels[i],
-                t(cell(x)),
-                check.names = FALSE,
-                row.names = NULL
-               )
-        }
-)
-
-table2_rows[[3]] <- data.frame(
-        Class = "Total",
-        t(cell(labels_df$Local)),
-        check.names = FALSE,
-        row.names = NULL
-)
-
-table2 <- do.call(rbind, table2_rows)
-print(table2)
-
-# TODO 3: Calculate textual feature support and create the bar chart.
-cat("=== TODO_3 ===\n")
-feature_matrix <- as.matrix(analysis_df[, feature_cols])
-k_j <- colSums(feature_matrix == 1, na.rm = TRUE)
-
-level <- c("Zero", "Very low", "Low", "Moderate", "Higher")
-range <- c("0", "[1, 5]", "[6, 20]", "[21, 100]", "> 100")
-
-support_group <- cut(
-  k_j,
-  breaks = c(-Inf, 0, 5, 20, 100, Inf),
-  labels = level,
-  right = TRUE
-)
-
-support_counts <- table(support_group)
-
-support_table <- data.frame(
-  Support = level,
-  Range = range,
-  n_features = as.vector(support_counts),
-  Percentage = round(100 * as.vector(support_counts)/length(feature_cols), digits = 3)
-)
-
-print(support_table)
-
-png(
-  file.path(figure_dir, "Figure1_support_feature.png"),
-  width = 1800,
-  height = 1000,
-  units = "px",
-  res = 220
-)
-par(mar = c(5, 4, 4, 5))
-
-bar <- barplot(
-  height = support_table$n_features,
-  names.arg = paste0(support_table$Support, "\n", support_table$Range),
-  col = "#016783",
-  xlab = "Support group (k_j = number of observations with feature = 1)",
-  ylab = "Number of textual features",
-  ylim = c(0, max(support_table$n_features) * 1.15)
-)
-text(
-  bar,
-  support_table$n_features,
-  labels = support_table$n_features,
-  pos = 3,
-  cex = 0.9
-)
-
+png(file.path(figure_dir, "Figure1_support_feature.png"),
+    width = 1800, height = 1000, res = 220)
+par(mar = c(5, 5, 2, 1.5))
+bp <- barplot(support_counts, col = "#016783", border = NA,
+              xlab = "Feature support (observations per indicator)",
+              ylab = "Number of textual indicators",
+              ylim = c(0, max(support_counts) * 1.15))
+text(bp, support_counts, labels = support_counts, pos = 3)
 dev.off()
 
+# TODO 4 - Rates within each Class; difference is descriptive, not a p-value.
+ad_rate <- colMeans(X[y == "ad.", , drop = FALSE])
+nonad_rate <- colMeans(X[y == "nonad.", , drop = FALSE])
+rate_df <- data.frame(feature = feature_cols, support = k_j,
+                      ad_rate = ad_rate, nonad_rate = nonad_rate,
+                      difference = ad_rate - nonad_rate, row.names = NULL)
+cat("\nFeatures more common in Ad / Non-ad:",
+    sum(rate_df$difference > 0), "/", sum(rate_df$difference < 0), "\n")
+cat("Both occurrence rates < 5%:",
+    sum(ad_rate < 0.05 & nonad_rate < 0.05), "\n")
 
-# TODO 4: Calculate occurrence rates by Class and create the scatter plot.
-cat("=== TODO_4 ===\n")
-
-occurence_rate <- function(class_value) {
-        m <- feature_matrix[which(analysis_df$Class == class_value), , drop = FALSE]
-        n_observed <- colSums(!is.na(m))
-        n_present <- colSums(m == 1, na.rm = TRUE)
-        ifelse(n_observed == 0, yes = NA_real_, no = n_present/n_observed)
-}
-
-rate_df <- data.frame(
-        feature = feature_cols,
-        ad_rate = occurence_rate("ad."),
-        nonad_rate = occurence_rate("nonad."),
-        row.names = NULL
-)
-
-rate_df$difference <- rate_df$ad_rate - rate_df$nonad_rate
-
-
-cat("\nOccurrence rates computed for", nrow(rate_df), "features.\n")
-cat("Features with NA rate in at least one Class:",
-    sum(is.na(rate_df$ad_rate) | is.na(rate_df$nonad_rate)), "\n")
-
-valid_rate <- rate_df[!is.na(rate_df$ad_rate) & !is.na(rate_df$nonad_rate), ]
-
-cat("\nPosition relative to y = x (features with both rates available):\n")
-cat("  Above the line (higher in Ad):    ", sum(valid_rate$difference > 0), "\n")
-cat("  Below the line (higher in Non-ad):", sum(valid_rate$difference < 0), "\n")
-cat("  On the line (equal rates):        ", sum(valid_rate$difference == 0), "\n")
-cat("  Both rates < 5%:                  ",
-    sum(valid_rate$ad_rate < 0.05 & valid_rate$nonad_rate < 0.05), "\n")
-cat("  |difference| >= 0.20:             ",
-    sum(abs(valid_rate$difference) >= 0.20), "\n")
-
-
-cat("\nTop 5 features with higher rate in Ad:\n")
-print(head(valid_rate[order(-valid_rate$difference), ], 5), row.names = FALSE)
-cat("\nTop 5 features with higher rate in Non-ad:\n")
-print(head(valid_rate[order(valid_rate$difference), ], 5), row.names = FALSE)
-
-
-png(
-        file.path(figure_dir, "Figure2_occurence_rates.png"),
-        width = 2000,
-        height = 2000,
-        units = "px",
-        res = 220
-)
-par(mar = c(5, 4, 4, 5))
-
-plot(
-        valid_rate$nonad_rate,
-        valid_rate$ad_rate,
-        xlim = c(0, 1),
-        ylim = c(0, 1),
-        pch = 16,
-        cex = 0.6,
-        col = rgb(0.12, 0.35, 0.65, 0.45),
-        xlab = "Nonad occurence rate",
-        ylab = "Ad occurence rate"
-)
-
-abline(
-        a = 0,
-        b = 1,
-        col = "red",
-        lty = 2,
-        lwd = 2
-)
-legend(
-        "topleft",
-        legend = "y = x",
-        col = "red",
-        lty = 2,
-        lwd = 2,
-        bty = "n"
-)
-
+# Zero-support indicators cannot be shown on a logarithmic x-axis.
+show <- rate_df$support > 0
+png(file.path(figure_dir, "Figure2_occurence_rates.png"),
+    width = 1800, height = 1200, res = 220)
+par(mar = c(5, 5, 2, 1.5))
+plot(rate_df$support[show], rate_df$difference[show],
+     log = "x", pch = 16, cex = 0.65,
+     col = rgb(0.12, 0.35, 0.65, 0.45),
+     xlab = "Textual feature support (log scale)",
+     ylab = "Ad rate - Non-ad rate")
+abline(h = 0, col = "#B45143", lty = 2, lwd = 2)
 dev.off()
 
-# Outputs: Class summary, 2 tables and 2 figures.
+# TODO 5 - Width by Class: descriptive only, omitting missing Width.
+width_df <- analysis_df[!is.na(analysis_df$Width), c("Width", "Class")]
+width_df$Class <- factor(width_df$Class, levels = c("ad.", "nonad."),
+                         labels = c("Ad", "Non-ad"))
+png(file.path(figure_dir, "Figure3_width_boxplot.png"),
+    width = 1600, height = 1100, res = 220)
+par(mar = c(5, 5, 2, 1.5))
+boxplot(Width ~ Class, data = width_df, col = c("#85B8C8", "#D2DEE5"),
+        border = "#50616A", xlab = "Advertisement class",
+        ylab = "Image width (pixels)")
+dev.off()
+
+cat("\nT06 complete: table1 and 3 PNG figures in", figure_dir, "\n")
