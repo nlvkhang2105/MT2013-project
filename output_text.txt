@@ -1,0 +1,92 @@
+> source("/home/nlvkhang/Documents/BK/Giáo trình/Probability and statistics/Project/MT2013_analysis.r", encoding = "UTF-8")
+Number of observations: 3279
+Number of columns: 1560
+Number of features: 1558
+
+First 5 rows (first 10 columns):
+  X  X0  X1     X2 X3 X4 X5 X6 X7 X8
+1 0 125 125 1.0000  1  0  0  0  0  0
+2 1  57 468 8.2105  1  0  0  0  0  0
+3 2  33 230 6.9696  1  0  0  0  0  0
+4 3  60 468 7.8000  1  0  0  0  0  0
+5 4  60 468 7.8000  1  0  0  0  0  0
+
+Datatype distribution:
+
+character   integer   numeric
+        1      1558         1
+AD/NON-AD count:
+
+   ad. nonad.
+   459   2820
+Anomaly check:...
+No anomalies found. Only 1, 0 and NA.
+=== T05: DATA PREPROCESSING ===
+Input rows: 3279
+Rows with missing Class: 0
+Textual indicators: 1554
+Missing textual values: 0
+Duplicate rows after the first occurrence (retained): 856
+
+Variables with missing values:
+ variable n_missing missing_percent
+   Height       903           27.54
+    Width       901           27.48
+   Aratio       910           27.75
+    Local        15            0.46
+   Class    N Percent
+1     Ad  459      14
+2 Non-ad 2820      86
+ Variable  Class Valid_n Missing_pct   Mean     SD Median    IQR
+   Height     Ad     386       15.90  67.44  39.16  60.00   0.00
+    Width     Ad     386       15.90 323.89 164.60 460.00 342.00
+   Aratio     Ad     386       15.90   5.62   3.07   7.80   5.58
+   Height Non-ad    1990       29.43  63.36  57.40  43.00  67.00
+    Width Non-ad    1992       29.36 122.69  91.50 101.00  77.00
+   Aratio Non-ad    1983       29.68   3.58   6.41   1.72   3.34
+
+Local by Class (0 / 1 / NA):
+
+y           0    1 <NA>
+  ad.     102  352    5
+  nonad.  658 2152   10
+
+Feature support summary:
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+   4.00   11.00   15.00   25.33   23.00  944.00
+SD: 47.87
+support_groups
+     0    1-5   6-20 21-100   >100
+     0      8   1057    460     29
+
+Features more common in Ad / Non-ad: 469 / 1085
+Both occurrence rates < 5%: 1464
+
+T06 complete: table1 and 3 PNG figures in figures
+
+Table 1 - Multiple-Testing Comparison (level = 0.05)
+  Procedure Error_control Discoveries
+         BY           FDR         447
+         BH           FDR         489
+ Bonferroni          FWER         379
+
+Table 2 - Selected BY Discoveries (rates on the 0-1 scale)
+ Feature Support Ad_rate Non_ad_rate Difference        BY_p
+   X1243     207 0.41176  0.00638298    0.40538 1.5489e-150
+    X351     152 0.31808  0.00212766    0.31596 1.4961e-121
+   X1399     144 0.30283  0.00177305    0.30106 3.1598e-116
+   X1483     164 0.29194  0.01063830    0.28130  1.7459e-88
+   X1435     152 0.27015  0.00992908    0.26022  2.8353e-81
+   X1455     146 0.26797  0.00815603    0.25982  6.9402e-84
+   X1278     369 0.32244  0.07836879    0.24407  2.0476e-38
+    X968     116 0.23747  0.00248227    0.23499  2.2339e-85
+   X1344     103 0.22004  0.00070922    0.21933  1.5418e-84
+   X1143      90 0.19172  0.00070922    0.19101  1.1911e-72
+
+Common to all three: 379
+BH but not BY: 42
+BY but not Bonferroni: 68
+Bonferroni but not BY: 0
+
+Full results saved to: outputs/T07_inference_results.csv
+>
