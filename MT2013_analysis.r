@@ -3,7 +3,7 @@
 
 # Load raw data ----
 load_data <- function() {
-  file_path <- "add.csv"
+  file_path <- "./MT2013/data/raw/add.csv"
 
   if (!file.exists(file_path)) {
     stop("File not found at: ", file_path)
